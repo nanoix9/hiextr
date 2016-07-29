@@ -20,6 +20,7 @@ class Empty(object):
 class Extr(object):
 
     def match(self, content):
+        #print content, type(content), self._is_empty(content)
         if self._is_empty(content):
             return Empty()
 
@@ -51,7 +52,7 @@ class Extr(object):
     def _is_empty(self, content):
         return isinstance(content, Empty) \
                 or content is None \
-                or (hasattr(content, '__iter__') \
+                or (isinstance(content, (tuple, list)) \
                     and (len(content) == 0 \
                         or all(c is None for c in content)))
 
@@ -98,8 +99,10 @@ class All(Extr):
 
     def match_impl(self, content):
         m = content.xpath(self.expr)
+        #print m, len(m)
         if len(m) > 0:
             ret = [self.trans(mi) for mi in m]
+            #print ret
             return ret
         else:
             return None
@@ -196,10 +199,13 @@ class Foreach(Extr):
 
     def match_impl(self, content):
         ret1 = self.extr1.match(content)
+        #print ret1
         if self._is_empty(ret1):
             return Empty()
         elif isinstance(ret1, list):
             ret2 = [self.extr2.match(c) for c in ret1]
+            #print ret2
+            #print self.extr2
         else:
             ret2 = extr.match(ret1)
         return ret2
@@ -247,6 +253,16 @@ def test1():
     # it should output:
     # {'a': 'Elsie', 'text': 'Once upon a time there were three little sisters; and their names were\n     Elsie ,\n     Lacie  and\n     Tillie ;\n    and they lived at the bottom of a well.', 'c': 'Tillie', 'b': 'LACIE'}
     print mt.match(ht)
+
+    mt = All('//body/p[@class="story"]/a') \
+            << Dict(dict(
+                 url = './@href',
+                 name = './text()'
+                 ))
+    # this got a list of objects
+    # [{'url': 'http://example.com/elsie', 'name': 'Elsie'}, {'url': 'http://example.com/lacie', 'name': 'Lacie'}, {'url': 'http://example.com/tillie', 'name': 'Tillie'}]
+    print mt.match(ht)
+
 
 def main():
     test1()
